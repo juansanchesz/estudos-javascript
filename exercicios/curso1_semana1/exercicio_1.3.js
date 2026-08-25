@@ -1,3 +1,5 @@
+//**Exercício 1.3:** Escreva uma função que recebe a vida de um personagem e retorna "morto", "crítico" ou "saudável". A sintaxe de funções só é explicada na Aula 1.5, mas você já pode usar este molde:
+
 const vida = 0;
 
 function avaliarVida(vida) {
