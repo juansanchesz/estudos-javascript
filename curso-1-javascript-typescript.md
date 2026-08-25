@@ -440,7 +440,9 @@ pontos = pontos + 10;
 ---
 
 **1.6.2 — Primitivo ou object?**
-Escreva `descreverTipo(valor)` que recebe qualquer valor e retorna uma string no formato `"<typeof> — primitivo"` ou `"<typeof> — object"`. Atenção às duas pegadinhas: `null` e arrays.
+Escreva `descreverTipo(valor)` que responde **duas perguntas** sobre um valor e junta as respostas numa string só: o que o `typeof` diz, e se o valor é de fato primitivo ou object.
+
+O motivo de a função existir é que `typeof` mente num caso: ele responde `"object"` para `null`, `[1, 2]` e `{ a: 1 }` — mas `null` é primitivo. Sua função corrige isso.
 
 ```
 descreverTipo(42)        -> "number — primitivo"
