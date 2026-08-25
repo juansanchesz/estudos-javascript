@@ -18,22 +18,205 @@ var antigo = "evite";  // forma antiga, quase não se usa mais
 
 **Regra prática:** use `const` por padrão. Só use `let` quando o valor realmente vai mudar. Nunca use `var`.
 
-### Aula 1.2 — Tipos primitivos
-JavaScript tem: `number`, `string`, `boolean`, `undefined`, `null`, `object`.
+### Aula 1.2 — Tipos primitivos e o tipo `object`
+
+**Os sete tipos primitivos.** Primitivo é um valor simples, indivisível e imutável:
+
+| Tipo | Exemplo | Pra que serve |
+|---|---|---|
+| `number` | `100`, `3.14`, `-7` | todo número (JS não separa int de float como C) |
+| `string` | `"Ash"` | texto |
+| `boolean` | `true`, `false` | verdadeiro/falso |
+| `undefined` | — | declarado, mas sem valor ainda |
+| `null` | `null` | vazio **intencional** |
+| `symbol` | `Symbol("id")` | identificador único (raro no dia a dia) |
+| `bigint` | `9007199254740993n` | inteiros gigantes (raro) |
 
 ```javascript
-let vida = 100;              // number
-let nomePersonagem = "Ash";  // string
-let estaVivo = true;         // boolean
-let equipamento;             // undefined (declarado, sem valor)
-let arma = null;             // null (valor vazio intencional)
+const vida = 100;              // number
+const nomePersonagem = "Ash";  // string
+const estaVivo = true;         // boolean
+let equipamento;               // undefined (declarado, sem valor)
+const arma = null;             // null (valor vazio intencional)
 ```
 
-Diferente de Lua, JS **não** trata `0` ou `""` como automaticamente `false` em todo contexto — mas em condicionais eles se comportam como "falsy". Vamos ver isso na próxima aula.
+Na prática você vive dos cinco primeiros. `symbol` e `bigint` existem, mas pode ignorá-los por enquanto.
+
+**Diferença entre `undefined` e `null`:** `undefined` é o JavaScript dizendo "ninguém pôs valor aqui". `null` é você dizendo "aqui está vazio de propósito". Em Lua os dois papéis são cobertos por um único `nil`.
+
+**Template strings.** Pra montar texto com valores dentro, use crase em vez de aspas:
+
+```javascript
+const nome = "Kael";
+const vida = 30;
+
+// forma antiga, com concatenação
+console.log("O " + nome + " tem " + vida + " de vida");
+
+// template string — crase + ${}
+console.log(`O ${nome} tem ${vida} de vida`);
+```
+
+Dentro do `${}` cabe qualquer expressão, não só uma variável: `${vida * 2}` ou `${vida > 0 ? "vivo" : "morto"}` funcionam. Equivale ao `..` de Lua, só que muito mais legível.
+
+**E o `object`?** É o único tipo **não-primitivo** de JavaScript — tudo que não está na tabela acima é `object`: objetos, arrays, funções, `Date`, `Map`. É o parente do `table` de Lua.
+
+```javascript
+const jogador = { nome: "Kael", vida: 100 };   // object
+const itens = ["espada", "escudo"];            // object (array é object)
+```
+
+**Descobrindo o tipo: `typeof`.** É um operador que devolve o nome do tipo como string. Não é função, não precisa de parênteses:
+
+```javascript
+typeof 42          // "number"
+typeof "oi"        // "string"
+typeof true        // "boolean"
+typeof undefined   // "undefined"
+typeof { a: 1 }    // "object"
+```
+
+Equivale ao `type(x)` de Lua. Mas ele tem duas armadilhas famosas:
+
+```javascript
+typeof null        // "object"  <- bug histórico da linguagem; null É primitivo
+typeof [1, 2]      // "object"  <- array é object mesmo; pra detectar array use Array.isArray()
+```
+
+O `typeof null` retornar `"object"` é um erro que existe desde 1995 e nunca foi corrigido, porque consertar quebraria metade da web. Você só precisa saber que ele existe: **pra testar se algo é `null`, compare direto** com `valor === null`.
+
+**Valor vs referência — a diferença que mais gera bug.** A regra de atribuição é a mesma nos dois casos: `b = a` copia o que está dentro da "caixa" de `a`. O que muda é *o que está dentro da caixa*.
+
+Num primitivo, a caixa guarda o próprio valor:
+
+```javascript
+let a = 10;
+let b = a;   // copia o 10
+b = 20;
+console.log(a);  // 10 — caixas independentes
+```
+
+Num object, o valor não cabe na caixa. Ele mora em outro lugar da memória, e a caixa guarda só o **endereço**:
+
+```javascript
+const p1 = { vida: 100 };
+const p2 = p1;   // copia o endereço, não o objeto
+p2.vida = 50;
+console.log(p1.vida);  // 50 — as duas apontam pro mesmo objeto!
+```
+
+```
+p1: [ ->0xA1 ]  --+
+                  +-->  0xA1: { vida: 100 }
+p2: [ ->0xA1 ]  --+
+```
+
+Repare na diferença entre mexer na caixa e mexer no objeto:
+
+```javascript
+p2 = { vida: 50 };   // troca a CAIXA de p2 — p1 fica intacto
+p2.vida = 50;        // muda o OBJETO compartilhado — p1 enxerga a mudança
+```
+
+Em Lua é idêntico: `number` e `string` são valor, `table` é referência.
+
+**Copiando de verdade.** Quando você quer um objeto independente, use spread (`...`):
+
+```javascript
+const original = { vida: 100, classe: "Guerreiro" };
+const copia = { ...original };
+copia.vida = 50;
+console.log(original.vida);  // 100 ✓
+```
+
+Cuidado: o spread é uma cópia **rasa**. Objetos dentro de objetos continuam compartilhados:
+
+```javascript
+const heroi = { nome: "Kael", inventario: { pocoes: 3 } };
+const clone = { ...heroi };
+clone.inventario.pocoes = 0;
+console.log(heroi.inventario.pocoes);  // 0 — o inventario é o MESMO objeto
+```
+
+Pra copiar tudo em profundidade: `structuredClone(heroi)`.
+
+Essa é a causa da maioria dos bugs de "o estado não atualiza" em React. Vale entender agora, não depois.
+
+**Acessando propriedades.** Duas formas, e você vai usar as duas:
+
+```javascript
+const jogador = { nome: "Kael", vida: 100 };
+
+jogador.nome        // "Kael"  — notação de ponto, o padrão
+jogador["nome"]     // "Kael"  — colchetes, quando a chave está numa variável
+
+jogador.vida = 80;        // altera
+jogador.classe = "Mago";  // cria uma propriedade nova
+```
+
+Vamos nos aprofundar em objetos e arrays na Semana 2 — por ora, basta saber ler e escrever propriedades.
 
 ### Aula 1.3 — Operadores e condicionais
+
+**Comparação.** Use sempre os de três caracteres:
+
+| Operador | Significado |
+|---|---|
+| `===` | igual em valor **e** tipo |
+| `!==` | diferente em valor **ou** tipo |
+| `>` `<` | maior / menor |
+| `>=` `<=` | maior ou igual / menor ou igual |
+
 ```javascript
-let vida = 30;
+5 === 5      // true
+5 === "5"    // false — number não é string
+5 !== "5"    // true
+vida >= 100  // true se vida for 100 ou mais
+```
+
+**Nunca use `==` e `!=`.** Eles convertem os tipos antes de comparar, e o resultado é imprevisível:
+
+```javascript
+5 == "5"           // true
+0 == false         // true
+"" == 0            // true
+null == undefined  // true
+```
+
+Em Lua só existe `==`, e ele já se comporta como o `===` de JS. A tradução mental é: **o `==` que você conhece de Lua virou `===` aqui.**
+
+**Lógicos.**
+
+```javascript
+vida > 0 && temPocao      // E   — os dois precisam ser true
+vida <= 0 || desistiu     // OU  — basta um ser true
+!estaVivo                 // NÃO — inverte
+```
+
+Em Lua seriam `and`, `or`, `not`.
+
+**Atribuição.** Quando você opera sobre a própria variável, abrevie:
+
+```javascript
+let pontos = 0;
+
+pontos = pontos + 10;   // funciona
+pontos += 10;           // idêntico, e é a forma usada na prática
+
+pontos -= 5;   // subtrai
+pontos *= 2;   // multiplica
+pontos /= 4;   // divide
+
+pontos++;      // soma 1
+pontos--;      // subtrai 1
+```
+
+O `+=` é o coração do padrão **acumulador**: uma variável que vai somando a cada volta de um loop.
+
+**Condicionais.**
+
+```javascript
+const vida = 30;
 
 if (vida <= 0) {
   console.log("Personagem morreu");
@@ -44,10 +227,39 @@ if (vida <= 0) {
 }
 
 // operador ternário — muito usado no dia a dia
-let status = vida > 0 ? "vivo" : "morto";
+const status = vida > 0 ? "vivo" : "morto";
 ```
 
-**Exercício 1.3:** Escreva uma função (ainda vamos ver função na aula 1.5) que recebe a vida de um personagem e retorna "morto", "crítico" ou "saudável".
+**A ordem das condições importa.** Num `else if`, quando o segundo teste roda é porque o primeiro já falhou. Isso permite simplificar:
+
+```javascript
+if (vida >= 100) { ... }
+else if (vida > 50) { ... }   // aqui vida já é < 100, não precisa testar de novo
+```
+
+E cuidado com as **bordas**: se você escreve `vida > 50` num teste e `vida < 50` no outro, o valor exato `50` não cai em nenhum dos dois e escorrega pro `else`. Sempre teste os números exatos das fronteiras.
+
+**Truthy e falsy.** Dentro de um `if`, todo valor tem um "valor de verdade" mesmo sem comparação. Só estes seis são **falsy**:
+
+```javascript
+false, 0, "", null, undefined, NaN
+```
+
+Todo o resto é truthy — inclusive `"0"`, `"false"`, `[]` e `{}`.
+
+```javascript
+if (nomeJogador) { ... }   // roda se nomeJogador não for "" nem undefined
+```
+
+Aqui mora a maior diferença em relação a Lua: **em Lua só `nil` e `false` são falsos** — `0` e `""` são verdadeiros. Em JavaScript `0` e `""` são falsos. Se você escrever `if (vida)` esperando "tem vida definida", vai se surpreender quando `vida` for `0`.
+
+**Exercício 1.3:** Escreva uma função que recebe a vida de um personagem e retorna "morto", "crítico" ou "saudável". A sintaxe de funções só é explicada na Aula 1.5, mas você já pode usar este molde:
+
+```javascript
+function avaliarVida(vida) {
+  // suas condicionais aqui
+}
+```
 
 ### Aula 1.4 — Loops
 ```javascript
@@ -70,6 +282,7 @@ while (tentativas > 0) {
 ```
 
 ### Aula 1.5 — Funções
+
 ```javascript
 // forma tradicional
 function somar(a, b) {
@@ -78,17 +291,103 @@ function somar(a, b) {
 
 // arrow function — forma moderna, você vai ver isso o tempo todo
 const somar2 = (a, b) => a + b;
+```
 
-const criarPersonagem = (nome, classe = "Guerreiro") => {
-  return { nome, classe, vida: 100 };
+Note a diferença de pontuação: `function somar() {}` é uma **declaração** e não leva `;` no fim. `const somar2 = () => {};` é uma **atribuição de variável**, e leva.
+
+**`return` não é `console.log`.** Essa confusão trava muita gente no começo:
+
+```javascript
+// com console.log — a função fala sozinha e o valor morre ali dentro
+const avaliar = (vida) => { console.log("crítico"); };
+const r = avaliar(10);
+console.log(r);   // undefined
+
+// com return — a função responde, e quem chamou decide o que fazer
+const avaliar2 = (vida) => { return "crítico"; };
+const r2 = avaliar2(10);
+if (r2 === "crítico") { usarPocao(); }
+```
+
+Uma função que só imprime serve pra uma coisa. Uma função que retorna serve pra qualquer coisa.
+
+**Chamar não é imprimir.** Se você escrever só `avaliar2(10);`, a função roda, devolve o valor... e ninguém o pega. Não aparece nada na tela. Pra ver o resultado: `console.log(avaliar2(10));`.
+
+**Arrow function: com e sem chaves.**
+
+```javascript
+const f = (a, b) => a + b;              // sem chaves: return implícito
+const g = (a, b) => { return a + b; };  // com chaves: return obrigatório
+const h = (a, b) => { a + b; };         // com chaves e sem return: devolve undefined
+```
+
+O caso `h` é um erro comum e silencioso — não dá erro de sintaxe, só devolve `undefined` e o bug aparece longe dali.
+
+**Parâmetros padrão.** Um valor usado quando o argumento não é informado:
+
+```javascript
+const criarPersonagem = (nome, classe = "Guerreiro", vida = 100) => {
+  return { nome, classe, vida };
+};
+
+criarPersonagem("Kael");                 // { nome: "Kael", classe: "Guerreiro", vida: 100 }
+criarPersonagem("Mira", "Maga");         // { nome: "Mira", classe: "Maga", vida: 100 }
+criarPersonagem("Rog", "Ladino", 80);    // { nome: "Rog", classe: "Ladino", vida: 80 }
+```
+
+Repare no `{ nome, classe, vida }` do `return`: quando a propriedade tem o mesmo nome da variável, você pode escrever só uma vez. É atalho para `{ nome: nome, classe: classe, vida: vida }`.
+
+**Early return (guard clause).** Como o `return` encerra a função na hora, você não precisa de `else`:
+
+```javascript
+// com else — aninhado
+const classificar = (vida) => {
+  if (vida >= 100) {
+    return "cheio";
+  } else if (vida > 50) {
+    return "saudável";
+  } else {
+    return "ferido";
+  }
+};
+
+// com early return — plano e mais fácil de ler
+const classificar2 = (vida) => {
+  if (vida >= 100) return "cheio";
+  if (vida > 50) return "saudável";
+  return "ferido";
 };
 ```
+
+É o padrão preferido no dia a dia: trata os casos especiais logo na entrada e deixa o caminho principal sem indentação.
+
+**Funções que já vêm prontas: `Math`.** JavaScript traz um conjunto de utilitários matemáticos:
+
+```javascript
+Math.max(10, 25, 7)   // 25 — o maior dos argumentos
+Math.min(10, 25, 7)   // 7  — o menor
+Math.floor(3.9)       // 3  — arredonda pra baixo
+Math.ceil(3.1)        // 4  — arredonda pra cima
+Math.round(3.5)       // 4  — arredonda normal
+Math.random()         // número aleatório entre 0 e 1
+Math.abs(-30)         // 30 — valor absoluto
+```
+
+Os dois primeiros rendem um truque que aparece o tempo todo em lógica de jogo:
+
+```javascript
+Math.max(0, valor)          // cria um PISO: nunca menor que 0
+Math.min(100, valor)        // cria um TETO: nunca maior que 100
+Math.min(100, Math.max(0, valor))   // prende entre 0 e 100
+```
+
+Isso substitui um `if` inteiro e comunica melhor a intenção. Em Lua é `math.max` / `math.min`, praticamente igual — só muda a maiúscula.
 
 **Exercício 1.5:** Crie uma arrow function `calcularDano(ataque, defesa)` que retorna o dano líquido (ataque - defesa), nunca menor que 0.
 
 ### Exercícios complementares 1.6
 
-Dez exercícios pra fixar tudo da Semana 1. Estão em ordem crescente de dificuldade. Crie um arquivo por exercício (`exercicio_1.6.1.js`, `1.6.2`, etc.) e rode com `node nome-do-arquivo.js`.
+Dez exercícios pra fixar tudo da Semana 1. Estão em ordem crescente de dificuldade. Crie um arquivo por exercício em `exercicios/curso1_semana1/` (`exercicio_1.6.1.js`, `exercicio_1.6.2.js`, etc.) e rode com `node exercicios/curso1_semana1/exercicio_1.6.1.js`.
 
 Cada um traz os casos de teste esperados — use-os pra conferir sozinho antes de me perguntar.
 
