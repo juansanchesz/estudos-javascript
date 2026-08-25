@@ -1,10 +1,9 @@
-let vida = 100;
+const vida = 0;
 
 function avaliarVida(vida) {
-    if (vida >= 100) return ("100% de vida");
-    if (vida >= 50) return ("Vida acima de 50%");
-    if (vida >= 10) return ("Vida abaixo de 50%");
-    return ("Vida crítica!");
+    if (vida >= 20) return "Saudável";
+    if (vida > 0) return "Vida Crítica!";
+    return "Morto!";
 }
 
 console.log(avaliarVida(vida));
