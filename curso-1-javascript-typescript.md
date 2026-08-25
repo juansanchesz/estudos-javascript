@@ -313,15 +313,49 @@ Uma função que só imprime serve pra uma coisa. Uma função que retorna serve
 
 **Chamar não é imprimir.** Se você escrever só `avaliar2(10);`, a função roda, devolve o valor... e ninguém o pega. Não aparece nada na tela. Pra ver o resultado: `console.log(avaliar2(10));`.
 
-**Arrow function: com e sem chaves.**
+**Arrow function: com e sem chaves.** A regra que resolve tudo: **`return` só existe dentro de chaves.** Ou você usa chaves e escreve o `return`, ou não usa nenhum dos dois.
 
 ```javascript
 const f = (a, b) => a + b;              // sem chaves: return implícito
 const g = (a, b) => { return a + b; };  // com chaves: return obrigatório
-const h = (a, b) => { a + b; };         // com chaves e sem return: devolve undefined
 ```
 
-O caso `h` é um erro comum e silencioso — não dá erro de sintaxe, só devolve `undefined` e o bug aparece longe dali.
+| Escrita | Resultado |
+|---|---|
+| `=> a + b` | retorna `a + b` ✓ |
+| `=> { return a + b; }` | retorna `a + b` ✓ |
+| `=> return a + b` | **SyntaxError** — o arquivo nem roda |
+| `=> { a + b; }` | retorna `undefined` — roda, mas silenciosamente errado |
+
+As duas últimas são os erros clássicos. Misturar seta e `return` sem chaves quebra na hora:
+
+```javascript
+const i = (a, b) => return a + b;   // SyntaxError: Unexpected token 'return'
+```
+
+O motivo é que `return` é um **comando**, e sem chaves o corpo da arrow function precisa ser uma **expressão** — algo que já é um valor por si só. As chaves criam um bloco, e é dentro de bloco que comandos como `return` podem existir.
+
+Já o caso `{ a + b; }` é mais traiçoeiro: não dá erro nenhum, a função só devolve `undefined` e o bug aparece longe dali.
+
+**Retornando objeto sem chaves.** Uma pegadinha que todo mundo esbarra:
+
+```javascript
+const criar = (nome) => { nome: nome };     // retorna undefined!
+```
+
+O JavaScript lê aquelas chaves como bloco de código, não como objeto literal. Pra deixar claro que é um objeto, envolva em parênteses:
+
+```javascript
+const criar = (nome) => ({ nome: nome });   // ✓ agora é objeto
+```
+
+Na dúvida, use a forma com bloco e `return` — é mais longa, mas não tem ambiguidade:
+
+```javascript
+const criar = (nome) => {
+  return { nome };
+};
+```
 
 **Parâmetros padrão.** Um valor usado quando o argumento não é informado:
 
